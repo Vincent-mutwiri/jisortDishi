@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Refrigerator, BookOpen, User, LogOut, UtensilsCrossed, type LucideIcon } from 'lucide-react';
-import { clearLocalUser, getLocalUserId } from '../lib/session';
+import { signOut, useSession } from 'next-auth/react';
+import { clearLocalUser, getLocalUserId, saveLocalUser } from '../lib/session';
 import { motion } from 'motion/react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { api } from '../lib/api';
 
 const NavItem = ({ to, icon: Icon, label }: { to: string, icon: LucideIcon, label: string }) => {
   const pathname = usePathname();
@@ -30,16 +32,67 @@ const NavItem = ({ to, icon: Icon, label }: { to: string, icon: LucideIcon, labe
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const handleLogout = () => {
+  const { data: session, status } = useSession();
+  const isProvisioningRef = useRef(false);
+
+  const handleLogout = async () => {
     clearLocalUser();
-    router.push('/login');
+    await signOut({ callbackUrl: '/login' });
   };
 
   useEffect(() => {
-    if (!getLocalUserId()) {
+    const ensureSessionAndProfile = async () => {
+      if (status === 'loading') return;
+
+      if (status === 'unauthenticated') {
+        clearLocalUser();
+        router.replace('/login');
+        return;
+      }
+
+      if (!getLocalUserId() && session?.user && !isProvisioningRef.current) {
+        isProvisioningRef.current = true;
+        const userId = (session.user as { id?: string }).id || session.user.email || crypto.randomUUID();
+
+        const profile = await api.upsertProfile({
+          user_id: userId,
+          name: session.user.name || 'Jisort User',
+          email: session.user.email || `google-${userId.slice(0, 8)}@jisort.local`,
+          dietary_preferences: [],
+          budget_preference: 1000,
+          currency: 'KES',
+        });
+
+        saveLocalUser(profile);
+      }
+    };
+
+    ensureSessionAndProfile().catch(() => {
+      clearLocalUser();
       router.replace('/login');
-    }
-  }, [router]);
+      isProvisioningRef.current = false;
+    });
+  }, [router, session, status]);
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f0] text-[#4a4a3a]">
+        Loading...
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') {
+    return null;
+  }
+
+  if (status === 'authenticated' && !getLocalUserId()) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f0] text-[#4a4a3a]">
+        Preparing your account...
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-[#f5f5f0] text-[#1a1a1a] font-sans">

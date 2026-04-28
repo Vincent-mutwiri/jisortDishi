@@ -3,32 +3,48 @@
 import { useRouter } from 'next/navigation';
 import { UtensilsCrossed, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
+import { signIn, useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { api } from '../lib/api';
 import { saveLocalUser } from '../lib/session';
+import { useEffect, useRef } from 'react';
 
 export default function Login() {
   const router = useRouter();
+  const { data: session, status } = useSession();
+  const isProvisioningRef = useRef(false);
+
+  useEffect(() => {
+    const syncGoogleUser = async () => {
+      if (status !== 'authenticated' || !session?.user || isProvisioningRef.current) return;
+      isProvisioningRef.current = true;
+
+      try {
+        const userId = (session.user as { id?: string }).id || session.user.email || crypto.randomUUID();
+        const profile = await api.upsertProfile({
+          user_id: userId,
+          name: session.user.name || 'Jisort User',
+          email: session.user.email || `google-${userId.slice(0, 8)}@jisort.local`,
+          dietary_preferences: [],
+          budget_preference: 1000,
+          currency: 'KES',
+        });
+
+        saveLocalUser(profile);
+        toast.success('Logged in successfully!');
+        router.replace('/');
+      } catch (error) {
+        isProvisioningRef.current = false;
+        console.error(error);
+        toast.error('Failed to finish account setup. Please try again.');
+      }
+    };
+
+    syncGoogleUser();
+  }, [router, session, status]);
 
   const handleLogin = async () => {
-    try {
-      const existingUserId = window.localStorage.getItem('jisort_user_id') || crypto.randomUUID();
-      const profile = await api.upsertProfile({
-        user_id: existingUserId,
-        name: 'Demo User',
-        email: `demo-${existingUserId.slice(0, 8)}@jisort.local`,
-        dietary_preferences: [],
-        budget_preference: 1000,
-        currency: 'KES',
-      });
-
-      saveLocalUser(profile);
-      toast.success('Logged in successfully!');
-      router.push('/');
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to log in. Please try again.');
-    }
+    await signIn('google', { callbackUrl: '/login' });
   };
 
   return (
@@ -62,6 +78,7 @@ export default function Login() {
 
         <button
           onClick={handleLogin}
+          disabled={status === 'loading'}
           className="w-full flex items-center justify-center gap-3 py-4 bg-[#1a1a1a] text-white rounded-2xl font-semibold hover:bg-[#333] transition-colors"
         >
           <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5 rounded-full" />

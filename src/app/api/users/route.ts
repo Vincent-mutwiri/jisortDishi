@@ -60,7 +60,6 @@ export async function POST(request: NextRequest) {
       budget_preference: Number(body.budget_preference || 1000),
       currency: body.currency || 'KES',
       created_at: now,
-      updated_at: now,
     };
 
     await db.collection<UserDocument>('users').updateOne(
