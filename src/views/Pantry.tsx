@@ -1,19 +1,11 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { 
-  collection, 
-  query, 
-  getDocs, 
-  addDoc, 
-  deleteDoc, 
-  doc, 
-  serverTimestamp,
-  updateDoc
-} from 'firebase/firestore';
 import { Plus, Trash2, Calendar, Package, Refrigerator, Search, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import toast from 'react-hot-toast';
-import { PantryItem, StorageUnit } from '../types';
+import { PantryItem } from '../types';
+import { api } from '../lib/api';
 
 export default function Pantry() {
   const [items, setItems] = useState<PantryItem[]>([]);
@@ -29,37 +21,12 @@ export default function Pantry() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const fetchItems = async () => {
-    if (!auth.currentUser) return;
     setLoading(true);
     try {
-      // For MVP, we assume a 'default' storage unit for everyone
-      const storageRef = collection(db, 'users', auth.currentUser.uid, 'storage');
-      const storageSnap = await getDocs(storageRef);
-      
-      let storageId = 'default';
-      if (storageSnap.empty) {
-        // Create default storage if it doesn't exist
-        const newStorage = await addDoc(storageRef, {
-          user_id: auth.currentUser.uid,
-          type: 'fridge',
-          name: 'Main Storage',
-          created_at: serverTimestamp()
-        });
-        storageId = newStorage.id;
-      } else {
-        storageId = storageSnap.docs[0].id;
-      }
-
-      const itemsRef = collection(db, 'users', auth.currentUser.uid, 'storage', storageId, 'items');
-      const itemsSnap = await getDocs(itemsRef);
-      const itemsList = itemsSnap.docs.map(doc => ({
-        ...doc.data(),
-        item_id: doc.id
-      })) as PantryItem[];
-      
-      setItems(itemsList);
+      setItems(await api.getPantry());
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, 'pantry_items');
+      console.error(error);
+      toast.error('Failed to load pantry');
     } finally {
       setLoading(false);
     }
@@ -71,50 +38,32 @@ export default function Pantry() {
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth.currentUser || !newItem.name) return;
+    if (!newItem.name) return;
 
     try {
-      const storageRef = collection(db, 'users', auth.currentUser.uid, 'storage');
-      const storageSnap = await getDocs(storageRef);
-      const storageId = storageSnap.docs[0].id;
-
-      const itemsRef = collection(db, 'users', auth.currentUser.uid, 'storage', storageId, 'items');
-      const docRef = await addDoc(itemsRef, {
-        user_id: auth.currentUser.uid,
-        storage_id: storageId,
-        item_name: newItem.name,
+      const item = await api.addPantryItem({
+        name: newItem.name,
         quantity: Number(newItem.quantity),
         unit: newItem.unit,
-        expiry_date: newItem.expiry || null,
-        date_added: serverTimestamp()
+        expiry: newItem.expiry || undefined,
       });
 
-      setItems(prev => [...prev, {
-        item_id: docRef.id,
-        user_id: auth.currentUser!.uid,
-        storage_id: storageId,
-        item_name: newItem.name,
-        quantity: Number(newItem.quantity),
-        unit: newItem.unit,
-        expiry_date: newItem.expiry || undefined,
-        date_added: new Date().toISOString()
-      }]);
+      setItems(prev => [item, ...prev]);
 
       setNewItem({ name: '', quantity: 1, unit: 'pcs', expiry: '' });
       setShowAddForm(false);
       toast.success('Added to pantry!');
-    } catch (error) {
+    } catch {
       toast.error('Failed to add item');
     }
   };
 
-  const handleDelete = async (itemId: string, storageId: string) => {
-    if (!auth.currentUser) return;
+  const handleDelete = async (itemId: string) => {
     try {
-      await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'storage', storageId, 'items', itemId));
+      await api.deletePantryItem(itemId);
       setItems(prev => prev.filter(i => i.item_id !== itemId));
       toast.success('Removed from pantry');
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete item');
     }
   };
@@ -265,7 +214,7 @@ export default function Pantry() {
                 </p>
               </div>
               <button 
-                onClick={() => handleDelete(item.item_id, item.storage_id)}
+                onClick={() => handleDelete(item.item_id)}
                 className="p-2 text-[#9e9e9e] hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
               >
                 <Trash2 size={18} />

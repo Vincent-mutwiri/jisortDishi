@@ -1,7 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-
 export interface GeminiMealSuggestion {
   title: string;
   description: string;
@@ -23,6 +21,12 @@ export async function getMealSuggestions(
   currency: string = 'KES'
 ): Promise<GeminiMealSuggestion[]> {
   try {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY is required');
+    }
+
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [

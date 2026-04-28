@@ -2,19 +2,19 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+# Jisort Dishi
 
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/b20617f2-7b61-47fd-8cf5-db8c38011cf6
+Next.js app backed by MongoDB for app data and AWS S3 presigned uploads for user files.
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js, MongoDB connection string, AWS S3 bucket, Gemini API key.
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+2. Copy `.env.example` to `.env.local` and fill in:
+   `MONGODB_URI`, `MONGODB_DB`, `GEMINI_API_KEY`, `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `S3_BUCKET_NAME`.
+3. Run the Next.js app:
    `npm run dev`
+
+The browser UI talks to internal Next API routes. MongoDB stores users, storage units, pantry items, and recipes. AWS S3 is used only where uploads are necessary through `/api/uploads/presign`.

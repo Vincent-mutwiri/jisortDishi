@@ -1,18 +1,11 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { 
-  collection, 
-  query, 
-  getDocs, 
-  addDoc, 
-  where,
-  serverTimestamp,
-  orderBy
-} from 'firebase/firestore';
 import { Search, Plus, Filter, Clock, Users, BookOpen, ChevronRight, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import toast from 'react-hot-toast';
 import { Recipe } from '../types';
+import { api } from '../lib/api';
 
 export default function Recipes() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -34,16 +27,10 @@ export default function Recipes() {
   const fetchRecipes = async () => {
     setLoading(true);
     try {
-      // Fetch public recipes
-      const recipesRef = collection(db, 'recipes');
-      const q = query(recipesRef, where('is_public', '==', true), orderBy('created_at', 'desc'));
-      const querySnap = await getDocs(q);
-      const list = querySnap.docs.map(doc => ({ ...doc.data(), recipe_id: doc.id })) as Recipe[];
-      setRecipes(list);
+      setRecipes(await api.getRecipes());
     } catch (error) {
       console.error(error);
-      // If index is missing, it will error out first time.
-      // handleFirestoreError(error, OperationType.LIST, 'recipes');
+      toast.error('Failed to load recipes');
     } finally {
       setLoading(false);
     }
@@ -55,29 +42,22 @@ export default function Recipes() {
 
   const handleAddRecipe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth.currentUser) return;
 
     try {
-      const recipesRef = collection(db, 'recipes');
-      const ingredients = newRecipe.ingredients.split('\n').map(i => ({ name: i, amount: '' }));
-      const steps = newRecipe.steps.split('\n');
-
-      const docRef = await addDoc(recipesRef, {
+      await api.addRecipe({
         title: newRecipe.title,
         description: newRecipe.description,
-        ingredients,
-        steps,
-        estimated_cost: Number(newRecipe.cost),
-        preparation_time: Number(newRecipe.time),
-        created_by: auth.currentUser.uid,
-        is_public: newRecipe.isPublic,
-        created_at: serverTimestamp()
+        ingredients: newRecipe.ingredients,
+        steps: newRecipe.steps,
+        cost: Number(newRecipe.cost),
+        time: Number(newRecipe.time),
+        isPublic: newRecipe.isPublic,
       });
 
       toast.success('Recipe published!');
       setShowAddForm(false);
       fetchRecipes(); // Refresh list
-    } catch (error) {
+    } catch {
       toast.error('Failed to save recipe');
     }
   };

@@ -1,11 +1,12 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import { auth, db } from '../lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getMealSuggestions, GeminiMealSuggestion } from '../lib/gemini';
+import type { GeminiMealSuggestion } from '../lib/gemini';
 import { Wallet, Sparkles, Clock, Utensils, ChevronRight, Refrigerator } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import toast from 'react-hot-toast';
 import { PantryItem, UserProfile } from '../types';
+import { api } from '../lib/api';
 
 export default function Dashboard() {
   const [budget, setBudget] = useState<string>('');
@@ -16,28 +17,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!auth.currentUser) return;
-      
-      const userRef = doc(db, 'users', auth.currentUser.uid);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        setUserProfile(userSnap.data() as UserProfile);
-        setBudget(userSnap.data().budget_preference?.toString() || '');
-      }
-
-      // Fetch all pantry items for suggestions
-      const storagesRef = collection(db, 'users', auth.currentUser.uid, 'storage');
-      const storagesSnap = await getDocs(storagesRef);
-      
-      let allItems: PantryItem[] = [];
-      for (const storageDoc of storagesSnap.docs) {
-        const itemsSnap = await getDocs(collection(db, 'users', auth.currentUser.uid, 'storage', storageDoc.id, 'items'));
-        allItems = [...allItems, ...itemsSnap.docs.map(d => ({...d.data(), item_id: d.id}) as PantryItem)];
-      }
-      setPantryItems(allItems);
+      const [profile, pantry] = await Promise.all([api.getProfile(), api.getPantry()]);
+      setUserProfile(profile);
+      setBudget(profile.budget_preference?.toString() || '');
+      setPantryItems(pantry);
     };
 
-    fetchData();
+    fetchData().catch((error) => {
+      console.error(error);
+      toast.error('Failed to load dashboard data');
+    });
   }, []);
 
   const handleSuggest = async () => {
@@ -49,12 +38,12 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const itemNames = pantryItems.map(i => i.item_name);
-      const results = await getMealSuggestions(
-        Number(budget),
-        itemNames,
-        userProfile?.dietary_preferences || [],
-        userProfile?.currency || 'KES'
-      );
+      const results = await api.getSuggestions({
+        budget: Number(budget),
+        items: itemNames,
+        preferences: userProfile?.dietary_preferences || [],
+        currency: userProfile?.currency || 'KES',
+      });
       setSuggestions(results);
       toast.success('Generated suggestions based on your budget!');
     } catch (error) {

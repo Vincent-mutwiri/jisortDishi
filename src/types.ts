@@ -45,6 +45,7 @@ export interface Recipe {
   created_by: string;
   price?: number;
   is_public: boolean;
+  image_url?: string | null;
   created_at: string;
 }
 

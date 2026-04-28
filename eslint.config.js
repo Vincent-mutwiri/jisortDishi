@@ -1,12 +1,11 @@
-import firebaseRulesPlugin from '@firebase/eslint-plugin-security-rules';
+import next from '@next/eslint-plugin-next';
 import ts from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 
 export default [
   {
-    ignores: ['dist/**/*']
+    ignores: ['.next/**/*', 'node_modules/**/*']
   },
-  ... (Array.isArray(firebaseRulesPlugin.configs['flat/recommended']) ? firebaseRulesPlugin.configs['flat/recommended'] : [firebaseRulesPlugin.configs['flat/recommended']]),
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
@@ -17,9 +16,11 @@ export default [
       },
     },
     plugins: {
+      '@next/next': next,
       '@typescript-eslint': ts,
     },
     rules: {
+      ...next.configs.recommended.rules,
       ...ts.configs.recommended.rules,
     },
   }

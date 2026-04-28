@@ -1,39 +1,31 @@
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth, db } from '../lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom';
+'use client';
+
+import { useRouter } from 'next/navigation';
 import { UtensilsCrossed, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import toast from 'react-hot-toast';
+import { api } from '../lib/api';
+import { saveLocalUser } from '../lib/session';
 
 export default function Login() {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleLogin = async () => {
     try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+      const existingUserId = window.localStorage.getItem('jisort_user_id') || crypto.randomUUID();
+      const profile = await api.upsertProfile({
+        user_id: existingUserId,
+        name: 'Demo User',
+        email: `demo-${existingUserId.slice(0, 8)}@jisort.local`,
+        dietary_preferences: [],
+        budget_preference: 1000,
+        currency: 'KES',
+      });
 
-      // Check if user profile exists
-      const userRef = doc(db, 'users', user.uid);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists()) {
-        await setDoc(userRef, {
-          user_id: user.uid,
-          name: user.displayName || 'Anonymous User',
-          email: user.email,
-          dietary_preferences: [],
-          budget_preference: 1000,
-          currency: 'KES',
-          created_at: serverTimestamp()
-        });
-      }
-
+      saveLocalUser(profile);
       toast.success('Logged in successfully!');
-      navigate('/');
-    } catch (error: any) {
+      router.push('/');
+    } catch (error) {
       console.error(error);
       toast.error('Failed to log in. Please try again.');
     }

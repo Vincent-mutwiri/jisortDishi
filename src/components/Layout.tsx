@@ -1,15 +1,18 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Refrigerator, BookOpen, User, LogOut, UtensilsCrossed } from 'lucide-react';
-import { auth } from '../lib/firebase';
-import { signOut } from 'firebase/auth';
-import { motion } from 'motion/react';
+'use client';
 
-const NavItem = ({ to, icon: Icon, label }: { to: string, icon: any, label: string }) => {
-  const location = useLocation();
-  const isActive = location.pathname === to;
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { LayoutDashboard, Refrigerator, BookOpen, User, LogOut, UtensilsCrossed, type LucideIcon } from 'lucide-react';
+import { clearLocalUser, getLocalUserId } from '../lib/session';
+import { motion } from 'motion/react';
+import { useEffect } from 'react';
+
+const NavItem = ({ to, icon: Icon, label }: { to: string, icon: LucideIcon, label: string }) => {
+  const pathname = usePathname();
+  const isActive = pathname === to;
   
   return (
-    <Link to={to}>
+    <Link href={to}>
       <motion.div
         whileHover={{ x: 4 }}
         className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
@@ -25,8 +28,18 @@ const NavItem = ({ to, icon: Icon, label }: { to: string, icon: any, label: stri
   );
 };
 
-export default function Layout() {
-  const handleLogout = () => signOut(auth);
+export default function Layout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const handleLogout = () => {
+    clearLocalUser();
+    router.push('/login');
+  };
+
+  useEffect(() => {
+    if (!getLocalUserId()) {
+      router.replace('/login');
+    }
+  }, [router]);
 
   return (
     <div className="flex min-h-screen bg-[#f5f5f0] text-[#1a1a1a] font-sans">
@@ -72,16 +85,16 @@ export default function Layout() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <Outlet />
+            {children}
           </motion.div>
         </div>
 
         {/* Mobile Bottom Nav */}
         <nav className="md:hidden flex justify-around p-3 bg-white border-t border-[#eaeaE0]">
-          <Link to="/" className="p-2"><LayoutDashboard /></Link>
-          <Link to="/pantry" className="p-2"><Refrigerator /></Link>
-          <Link to="/recipes" className="p-2"><BookOpen /></Link>
-          <Link to="/profile" className="p-2"><User /></Link>
+          <Link href="/" className="p-2"><LayoutDashboard /></Link>
+          <Link href="/pantry" className="p-2"><Refrigerator /></Link>
+          <Link href="/recipes" className="p-2"><BookOpen /></Link>
+          <Link href="/profile" className="p-2"><User /></Link>
         </nav>
       </main>
     </div>

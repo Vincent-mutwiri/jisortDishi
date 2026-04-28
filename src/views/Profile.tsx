@@ -1,26 +1,23 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import { auth, db } from '../lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 import { User, Settings, CreditCard, Pizza, Bell, ShieldCheck, Save, LogOut } from 'lucide-react';
-import { motion } from 'motion/react';
 import toast from 'react-hot-toast';
 import { UserProfile } from '../types';
-import { signOut } from 'firebase/auth';
+import { api } from '../lib/api';
+import { clearLocalUser } from '../lib/session';
 
 export default function Profile() {
+  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!auth.currentUser) return;
       try {
-        const userRef = doc(db, 'users', auth.currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          setProfile(userSnap.data() as UserProfile);
-        }
+        setProfile(await api.getProfile());
       } catch (error) {
         console.error(error);
       } finally {
@@ -32,19 +29,19 @@ export default function Profile() {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth.currentUser || !profile) return;
+    if (!profile) return;
 
     setSaving(true);
     try {
-      const userRef = doc(db, 'users', auth.currentUser.uid);
-      await updateDoc(userRef, {
+      const updated = await api.updateProfile({
         name: profile.name,
         budget_preference: Number(profile.budget_preference),
         dietary_preferences: profile.dietary_preferences,
         currency: profile.currency
       });
+      setProfile(updated);
       toast.success('Profile updated!');
-    } catch (error) {
+    } catch {
       toast.error('Failed to update profile');
     } finally {
       setSaving(false);
@@ -90,7 +87,10 @@ export default function Profile() {
             <ShieldCheck size={18} /> Security
           </button>
           <button 
-            onClick={() => signOut(auth)}
+            onClick={() => {
+              clearLocalUser();
+              router.push('/login');
+            }}
             className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-2xl transition-colors mt-8"
           >
             <LogOut size={18} /> Sign Out

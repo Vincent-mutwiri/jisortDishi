@@ -24,4 +24,4 @@
 12. **Orphaned Writes**: Creating an item in a non-existent storage unit.
 
 ## 3. Test Runner (Conceptual)
-`firestore.rules.test.ts` will verify these scenarios.
+Next API route tests should verify these scenarios against MongoDB-backed handlers, using request headers and fixtures to simulate authenticated users.
