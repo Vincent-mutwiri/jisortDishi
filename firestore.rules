@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 0.1 Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    
+    // 1. User Profiles
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'dietary_preferences', 'budget_preference', 'currency']);
+
+      function isValidUser(data) {
+        return data.user_id == request.auth.uid &&
+               data.email is string && data.email.size() <= 256 &&
+               data.created_at == request.time;
+      }
+    }
+
+    // 2. Storage Units
+    match /users/{userId}/storage/{storageId} {
+      allow list, get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(storageId) && isValidStorage(incoming());
+      allow update: if isOwner(userId) && isValidStorage(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'type']);
+      allow delete: if isOwner(userId);
+
+      function isValidStorage(data) {
+        return data.user_id == userId &&
+               data.type in ['fridge', 'pantry', 'store'] &&
+               data.created_at == (resource == null ? request.time : existing().created_at);
+      }
+    }
+
+    // 3. Storage Items
+    match /users/{userId}/storage/{storageId}/items/{itemId} {
+      allow list, get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(itemId) && isValidItem(incoming());
+      allow update: if isOwner(userId) && isValidItem(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['item_name', 'quantity', 'unit', 'expiry_date']);
+      allow delete: if isOwner(userId);
+
+      function isValidItem(data) {
+        return data.user_id == userId &&
+               data.storage_id == storageId &&
+               data.item_name is string && data.item_name.size() <= 100 &&
+               data.quantity is number && data.quantity >= 0 &&
+               data.date_added == (resource == null ? request.time : existing().date_added);
+      }
+    }
+
+    // 4. Recipes
+    match /recipes/{recipeId} {
+      allow list: if isSignedIn() && (resource.data.is_public == true || resource.data.created_by == request.auth.uid);
+      allow get: if isSignedIn() && (resource.data.is_public == true || resource.data.created_by == request.auth.uid);
+      allow create: if isVerified() && isValidId(recipeId) && isValidRecipe(incoming());
+      allow update: if isVerified() && resource.data.created_by == request.auth.uid && isValidRecipe(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'ingredients', 'steps', 'estimated_cost', 'preparation_time', 'is_public']);
+      allow delete: if isVerified() && resource.data.created_by == request.auth.uid;
+
+      function isValidRecipe(data) {
+        return data.created_by == request.auth.uid &&
+               data.title is string && data.title.size() <= 100 &&
+               data.ingredients is list && data.ingredients.size() <= 50 &&
+               data.steps is list && data.steps.size() <= 30 &&
+               data.created_at == (resource == null ? request.time : existing().created_at);
+      }
+    }
+
+    // 5. Meal Suggestions
+    match /users/{userId}/suggestions/{suggestionId} {
+      allow list, get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(suggestionId) && isValidSuggestion(incoming());
+      allow delete: if isOwner(userId);
+
+      function isValidSuggestion(data) {
+        return data.user_id == userId &&
+               data.recipe_id is string &&
+               data.generated_at == request.time;
+      }
+    }
+  }
+}

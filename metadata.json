@@ -1,0 +1,6 @@
+{
+  "name": "Jisort Dishi",
+  "description": "AI-powered meal suggestions based on budget and pantry items, featuring food waste reduction and recipe sharing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["AI-powered recommendations", "Inventory tracking", "Budget management"]
+}
