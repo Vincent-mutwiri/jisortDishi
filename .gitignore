@@ -5,6 +5,15 @@ dist/
 coverage/
 .DS_Store
 *.log
-.env*
+
+# Environment and local secrets
+.env
+.env.*
+.env*.local
 !.env.example
-.env.local
+
+# Common key/cert files
+*.pem
+*.key
+*.p12
+*.pfx
