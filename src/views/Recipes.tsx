@@ -30,7 +30,7 @@ export default function Recipes() {
       setRecipes(await api.getRecipes());
     } catch (error) {
       console.error(error);
-      toast.error('Failed to load recipes');
+      toast.error('Failed to load recipes!');
     } finally {
       setLoading(false);
     }
