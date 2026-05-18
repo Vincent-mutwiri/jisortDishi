@@ -32,6 +32,7 @@ const NavItem = ({ to, icon: Icon, label }: { to: string, icon: LucideIcon, labe
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: session, status } = useSession();
   const isProvisioningRef = useRef(false);
 
@@ -43,6 +44,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const ensureSessionAndProfile = async () => {
       if (status === 'loading') return;
+
+      // Check if we're on the landing page - no auth required
+      if (pathname === '/') {
+        return;
+      }
 
       if (status === 'unauthenticated') {
         clearLocalUser();
@@ -72,7 +78,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       router.replace('/login');
       isProvisioningRef.current = false;
     });
-  }, [router, session, status]);
+  }, [router, session, status, pathname]);
 
   if (status === 'loading') {
     return (
@@ -83,6 +89,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   }
 
   if (status === 'unauthenticated') {
+    // Check if user is authenticated via email/password (local storage)
+    if (getLocalUserId()) {
+      // User is locally authenticated, allow access to protected routes
+      return null;
+    }
+    // Not authenticated via any method, redirect to login
+    router.replace('/login');
     return null;
   }
 
@@ -104,7 +117,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
         
         <nav className="flex-1 space-y-2">
-          <NavItem to="/" icon={LayoutDashboard} label="Dashboard" />
+          <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
           <NavItem to="/pantry" icon={Refrigerator} label="Pantry / Fridge" />
           <NavItem to="/recipes" icon={BookOpen} label="Recipes" />
           <NavItem to="/profile" icon={User} label="My Profile" />
@@ -144,7 +157,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Mobile Bottom Nav */}
         <nav className="md:hidden flex justify-around p-3 bg-white border-t border-[#eaeaE0]">
-          <Link href="/" className="p-2"><LayoutDashboard /></Link>
+          <Link href="/dashboard" className="p-2"><LayoutDashboard /></Link>
           <Link href="/pantry" className="p-2"><Refrigerator /></Link>
           <Link href="/recipes" className="p-2"><BookOpen /></Link>
           <Link href="/profile" className="p-2"><User /></Link>
