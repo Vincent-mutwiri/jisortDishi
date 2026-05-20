@@ -1,20 +1,115 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { UtensilsCrossed, Refrigerator, Wallet, Heart, ArrowRight, Sparkles, TrendingDown, Users } from 'lucide-react';
+import { UtensilsCrossed, Refrigerator, Wallet, Heart, ArrowRight, Sparkles, TrendingDown, Users, User, LogOut, LayoutDashboard } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useEffect, useState } from 'react';
+import { getLocalUserId, clearLocalUser } from '../lib/session';
+import { auth } from '../lib/auth';
 
 export default function LandingPage() {
   const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState('');
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const userId = getLocalUserId();
+      const name = localStorage.getItem('jisort_user_name');
+      
+      if (userId && name) {
+        setIsLoggedIn(true);
+        setUserName(name);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   const handleGetStarted = () => {
     router.push('/login');
   };
 
+  const handleLogout = () => {
+    clearLocalUser();
+    auth.clearCurrentUser();
+    setIsLoggedIn(false);
+    setUserName('');
+  };
+
   return (
     <div className="min-h-screen bg-[#f5f5f0]">
+      {/* Navigation Bar */}
+      <motion.nav
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white border-b border-[#eaeaE0] px-6 py-4 md:px-12"
+      >
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-2 text-[#5A5A40]">
+            <UtensilsCrossed size={24} strokeWidth={2.5} />
+            <span className="text-lg font-bold">Jisort Dishi</span>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            {isLoggedIn ? (
+              <>
+                {/* Logged in user navigation */}
+                <div className="hidden md:flex items-center gap-2 px-3 py-2 text-[#4a4a3a] border border-[#eaeaE0] rounded-lg">
+                  <User size={18} />
+                  <span className="font-medium text-sm">{userName.split(' ')[0]}</span>
+                </div>
+                
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#5A5A40] text-white rounded-lg hover:bg-[#4a4a30] transition-colors"
+                >
+                  <LayoutDashboard size={18} />
+                  <span className="hidden md:inline">Dashboard</span>
+                </button>
+                
+                <button
+                  onClick={() => router.push('/profile')}
+                  className="flex items-center gap-2 px-4 py-2 text-[#5A5A40] hover:bg-[#f5f5f0] rounded-lg transition-colors"
+                >
+                  <User size={18} />
+                  <span className="hidden md:inline">Profile</span>
+                </button>
+                
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <LogOut size={18} />
+                  <span className="hidden md:inline">Logout</span>
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Not logged in navigation */}
+                <button
+                  onClick={() => router.push('/login')}
+                  className="flex items-center gap-2 px-4 py-2 text-[#5A5A40] hover:bg-[#f5f5f0] rounded-lg transition-colors"
+                >
+                  <User size={18} />
+                  <span className="hidden md:inline">Login</span>
+                </button>
+                
+                <button
+                  onClick={() => router.push('/login')}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#5A5A40] text-white rounded-lg hover:bg-[#4a4a30] transition-colors"
+                >
+                  <User size={18} />
+                  <span className="hidden md:inline">Sign Up</span>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </motion.nav>
+
       {/* Hero Section */}
-      <section className="px-6 py-20 md:px-12 md:py-32">
+      <section className="px-6 py-20 md:px-12 md:py-32 pt-12">
         <div className="max-w-6xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -31,7 +126,7 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-5xl md:text-7xl font-bold text-[#1a1a1a] mb-6 tracking-tight"
           >
-            Jisort Dishi
+            {isLoggedIn ? `Welcome back, ${userName.split(' ')[0]}!` : 'Jisort Dishi'}
           </motion.h1>
           
           <motion.p
@@ -40,7 +135,7 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-2xl md:text-3xl text-[#5A5A40] mb-8 font-medium"
           >
-            Smart meals for smart budgets
+            {isLoggedIn ? 'Ready to plan your next meal?' : 'Smart meals for smart budgets'}
           </motion.p>
           
           <motion.p
@@ -49,18 +144,20 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="text-lg text-[#4a4a3a] mb-12 max-w-2xl mx-auto"
           >
-            Transform your pantry into delicious, budget-friendly meals. 
-            Track ingredients, get smart recommendations, and reduce food waste.
+            {isLoggedIn 
+              ? 'Continue your journey to smarter meal planning. Check your dashboard for personalized recommendations.'
+              : 'Transform your pantry into delicious, budget-friendly meals. Track ingredients, get smart recommendations, and reduce food waste.'
+            }
           </motion.p>
           
           <motion.button
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            onClick={handleGetStarted}
+            onClick={isLoggedIn ? () => router.push('/dashboard') : handleGetStarted}
             className="inline-flex items-center gap-3 px-8 py-4 bg-[#5A5A40] text-white rounded-2xl font-semibold text-lg hover:bg-[#4a4a30] transition-colors shadow-lg hover:shadow-xl"
           >
-            Get Started
+            {isLoggedIn ? 'Go to Dashboard' : 'Get Started'}
             <ArrowRight size={20} />
           </motion.button>
         </div>

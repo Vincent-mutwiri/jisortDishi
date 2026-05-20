@@ -1,10 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { UtensilsCrossed, Sparkles, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { UtensilsCrossed, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'motion/react';
 import { signIn, useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
+import Image from 'next/image';
+import { auth } from '../lib/auth';
 import { api } from '../lib/api';
 import { saveLocalUser } from '../lib/session';
 import { useEffect, useRef, useState } from 'react';
@@ -66,22 +68,13 @@ export default function Login() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
-      }
+      const data = await auth.login({ email, password });
 
       // Save user profile locally
       saveLocalUser(data.profile);
+      // Save user session in auth library
+      auth.setCurrentUser(data.user);
+      
       toast.success('Login successful!');
       router.replace('/dashboard');
     } catch (error) {
@@ -112,37 +105,17 @@ export default function Login() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
-      }
+      // Register the user
+      await auth.register({ name, email, password });
 
       // Auto-login after successful registration
-      const loginResponse = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const loginData = await loginResponse.json();
-
-      if (!loginResponse.ok) {
-        throw new Error(loginData.error || 'Auto-login failed');
-      }
+      const loginData = await auth.login({ email, password });
 
       // Save user profile locally
       saveLocalUser(loginData.profile);
+      // Save user session in auth library
+      auth.setCurrentUser(loginData.user);
+      
       toast.success('Registration successful! Welcome to Jisort Dishi!');
       router.replace('/dashboard');
     } catch (error) {
@@ -259,6 +232,19 @@ export default function Login() {
               isLoginMode ? 'Sign In' : 'Create Account'
             )}
           </button>
+
+          {/* Forgot Password Link */}
+          {isLoginMode && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => router.push('/forgot-password')}
+                className="text-[#5A5A40] text-sm hover:text-[#4a4a30] transition-colors"
+              >
+                Forgot your password?
+              </button>
+            </div>
+          )}
         </form>
 
         {/* Divider */}
@@ -277,29 +263,36 @@ export default function Login() {
           disabled={status === 'loading'}
           className="w-full flex items-center justify-center gap-3 py-3 bg-[#1a1a1a] text-white rounded-xl font-semibold hover:bg-[#333] transition-colors mb-6"
         >
-          <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5 rounded-full" />
+          <Image 
+            src="https://www.google.com/favicon.ico" 
+            alt="Google" 
+            width={20} 
+            height={20} 
+            className="rounded-full" 
+          />
           Continue with Google
         </button>
 
-        {/* Features */}
-        <div className="space-y-3 mb-8 text-left bg-[#fcfcfb] p-4 rounded-2xl border border-[#f0f0eb]">
-          <div className="flex gap-3">
-            <Sparkles size={20} className="text-[#5A5A40] shrink-0" />
-            <p className="text-sm text-[#4a4a3a]">Get meal suggestions based on your budget.</p>
-          </div>
-          <div className="flex gap-3">
-            <Sparkles size={20} className="text-[#5A5A40] shrink-0" />
-            <p className="text-sm text-[#4a4a3a]">Track your pantry and minimize food waste.</p>
-          </div>
-          <div className="flex gap-3">
-            <Sparkles size={20} className="text-[#5A5A40] shrink-0" />
-            <p className="text-sm text-[#4a4a3a]">Simple recipes for students and bachelors.</p>
-          </div>
-        </div>
-        
+        {/* Terms and Conditions */}
         <p className="text-xs text-[#9e9e9e] leading-relaxed">
-          By continuing, you agree to cook more and waste less. 
-          Standard recipe fees (future) and data charges may apply.
+          By continuing, you agree to our{' '}
+          <a 
+            href="/terms" 
+            className="text-[#5A5A40] hover:text-[#4a4a30] underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Terms and Conditions
+          </a>
+          {' '}and{' '}
+          <a 
+            href="/privacy" 
+            className="text-[#5A5A40] hover:text-[#4a4a30] underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Privacy Policy
+          </a>
         </p>
       </motion.div>
     </div>

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Refrigerator, BookOpen, User, LogOut, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { clearLocalUser, getLocalUserId, saveLocalUser } from '../lib/session';
+import { auth } from '../lib/auth';
 import { motion } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import { api } from '../lib/api';
@@ -38,7 +39,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     clearLocalUser();
-    await signOut({ callbackUrl: '/login' });
+    auth.clearCurrentUser();
+    
+    // Try to sign out from NextAuth if available, but don't wait for it
+    try {
+      await signOut({ callbackUrl: '/login' });
+    } catch {
+      // If NextAuth signOut fails, just redirect manually
+      router.replace('/login');
+    }
   };
 
   useEffect(() => {
@@ -50,20 +59,23 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      if (status === 'unauthenticated') {
-        clearLocalUser();
+      // Check if user is authenticated via email/password (localStorage)
+      const localUserId = getLocalUserId();
+      
+      if (status === 'unauthenticated' && !localUserId) {
+        // Not authenticated via any method, redirect to login
         router.replace('/login');
         return;
       }
 
-      if (!getLocalUserId() && session?.user && !isProvisioningRef.current) {
+      if (status === 'authenticated' && !localUserId && !isProvisioningRef.current) {
         isProvisioningRef.current = true;
-        const userId = (session.user as { id?: string }).id || session.user.email || crypto.randomUUID();
+        const userId = (session.user as { id?: string }).id || session.user?.email || crypto.randomUUID();
 
         const profile = await api.upsertProfile({
           user_id: userId,
-          name: session.user.name || 'Jisort User',
-          email: session.user.email || `google-${userId.slice(0, 8)}@jisort.local`,
+          name: session.user?.name || 'Jisort User',
+          email: session.user?.email || `google-${userId.slice(0, 8)}@jisort.local`,
           dietary_preferences: [],
           budget_preference: 1000,
           currency: 'KES',
@@ -92,11 +104,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     // Check if user is authenticated via email/password (local storage)
     if (getLocalUserId()) {
       // User is locally authenticated, allow access to protected routes
+      // Continue to render the layout
+    } else {
+      // Not authenticated via any method, redirect to login
+      router.replace('/login');
       return null;
     }
-    // Not authenticated via any method, redirect to login
-    router.replace('/login');
-    return null;
   }
 
   if (status === 'authenticated' && !getLocalUserId()) {

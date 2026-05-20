@@ -8,9 +8,11 @@ export function getLocalUserId() {
 export function saveLocalUser(profile: UserProfile) {
   window.localStorage.setItem('jisort_user_id', profile.user_id);
   window.localStorage.setItem('jisort_user_email', profile.email);
+  window.localStorage.setItem('jisort_user_name', profile.name);
 }
 
 export function clearLocalUser() {
   window.localStorage.removeItem('jisort_user_id');
   window.localStorage.removeItem('jisort_user_email');
+  window.localStorage.removeItem('jisort_user_name');
 }

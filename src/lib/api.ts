@@ -1,4 +1,4 @@
-import type { PantryItem, Recipe, UserProfile } from '../types';
+import type { PantryItem, Recipe, UserProfile, CreateRecipeRequest, UpdateRecipeRequest } from '../types';
 import type { GeminiMealSuggestion } from './gemini';
 
 function userIdHeader() {
@@ -48,17 +48,16 @@ export const api = {
     method: 'DELETE',
   }),
   getRecipes: () => request<Recipe[]>('/api/recipes'),
-  addRecipe: (recipe: {
-    title: string;
-    description: string;
-    ingredients: string;
-    steps: string;
-    cost: number;
-    time: number;
-    isPublic: boolean;
-  }) => request<Recipe>('/api/recipes', {
+  createRecipe: (recipe: CreateRecipeRequest) => request<Recipe>('/api/recipes', {
     method: 'POST',
     body: JSON.stringify(recipe),
+  }),
+  updateRecipe: (recipe: UpdateRecipeRequest) => request<Recipe>('/api/recipes', {
+    method: 'PATCH',
+    body: JSON.stringify(recipe),
+  }),
+  deleteRecipe: (recipeId: string) => request<{ ok: true }>(`/api/recipes/${recipeId}`, {
+    method: 'DELETE',
   }),
   getSuggestions: (payload: {
     budget: number;

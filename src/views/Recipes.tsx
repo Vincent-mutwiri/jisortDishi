@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, Plus, Filter, Clock, Users, BookOpen, ChevronRight, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import toast from 'react-hot-toast';
@@ -8,21 +9,11 @@ import { Recipe } from '../types';
 import { api } from '../lib/api';
 
 export default function Recipes() {
+  const router = useRouter();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-
-  const [newRecipe, setNewRecipe] = useState({
-    title: '',
-    description: '',
-    ingredients: '',
-    steps: '',
-    cost: 500,
-    time: 30,
-    isPublic: true
-  });
 
   const fetchRecipes = async () => {
     setLoading(true);
@@ -40,28 +31,6 @@ export default function Recipes() {
     fetchRecipes();
   }, []);
 
-  const handleAddRecipe = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      await api.addRecipe({
-        title: newRecipe.title,
-        description: newRecipe.description,
-        ingredients: newRecipe.ingredients,
-        steps: newRecipe.steps,
-        cost: Number(newRecipe.cost),
-        time: Number(newRecipe.time),
-        isPublic: newRecipe.isPublic,
-      });
-
-      toast.success('Recipe published!');
-      setShowAddForm(false);
-      fetchRecipes(); // Refresh list
-    } catch {
-      toast.error('Failed to save recipe');
-    }
-  };
-
   const filteredRecipes = recipes.filter(r => 
     r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.description.toLowerCase().includes(searchTerm.toLowerCase())
@@ -75,7 +44,7 @@ export default function Recipes() {
           <p className="text-[#4a4a3a]">Discover affordable meals or share your own creations.</p>
         </div>
         <button 
-          onClick={() => setShowAddForm(true)}
+          onClick={() => router.push('/recipes/create')}
           className="flex items-center justify-center gap-2 px-6 py-3 bg-[#5A5A40] text-white rounded-2xl font-bold hover:bg-[#4a4a3a] transition-colors"
         >
           <Plus size={20} />
@@ -120,7 +89,7 @@ export default function Recipes() {
               </div>
               <div className="p-6">
                 <div className="flex justify-between items-start mb-2 text-[#9e9e9e] font-bold text-[10px] uppercase tracking-widest">
-                  <span className="flex items-center gap-1"><Clock size={12} /> {recipe.preparation_time}m</span>
+                  <span className="flex items-center gap-1"><Clock size={12} /> {recipe.prep_time_minutes}m</span>
                   <span>EST. {recipe.estimated_cost} KES</span>
                 </div>
                 <h4 className="text-xl font-bold mb-2 group-hover:text-[#5A5A40] transition-colors">{recipe.title}</h4>
@@ -175,7 +144,7 @@ export default function Recipes() {
                   </span>
                   <span className="flex items-center gap-1.5 text-sm font-medium text-[#4a4a3a]">
                     <Clock size={16} />
-                    {selectedRecipe.preparation_time} minutes
+                    {selectedRecipe.prep_time_minutes} minutes
                   </span>
                 </div>
 
@@ -191,7 +160,7 @@ export default function Recipes() {
                       {selectedRecipe.ingredients.map((ing, i) => (
                         <li key={i} className="flex justify-between items-center py-2 border-b border-[#eaeaE0]">
                           <span className="font-semibold">{ing.name}</span>
-                          <span className="text-sm text-[#4a4a3a]">{ing.amount}</span>
+                          <span className="text-sm text-[#4a4a3a]">{ing.quantity} {ing.unit}</span>
                         </li>
                       ))}
                     </ul>
@@ -202,103 +171,15 @@ export default function Recipes() {
                       {selectedRecipe.steps.map((step, i) => (
                         <li key={i} className="flex gap-4">
                           <span className="flex-shrink-0 w-8 h-8 rounded-full bg-[#f0f0eb] flex items-center justify-center font-bold text-xs">
-                            {i + 1}
+                            {step.step_number}
                           </span>
-                          <p className="text-[#4a4a3a] leading-relaxed">{step}</p>
+                          <p className="text-[#4a4a3a] leading-relaxed">{step.instruction}</p>
                         </li>
                       ))}
                     </ol>
                   </div>
                 </div>
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Add Recipe Modal */}
-      <AnimatePresence>
-        {showAddForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAddForm(false)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            />
-            <motion.div
-              layout
-              className="relative w-full max-w-2xl bg-white rounded-[40px] shadow-2xl p-8 md:p-12"
-            >
-              <h3 className="text-2xl font-bold mb-8">Share Your Dishi</h3>
-              <form onSubmit={handleAddRecipe} className="space-y-6">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-[#9e9e9e] mb-2 tracking-widest">Recipe Title</label>
-                  <input 
-                    required
-                    type="text"
-                    value={newRecipe.title}
-                    onChange={e => setNewRecipe({...newRecipe, title: e.target.value})}
-                    placeholder="e.g. Spicy Rice with Beans"
-                    className="w-full px-4 py-3 bg-[#fcfcfb] border border-[#eaeaE0] rounded-xl outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-[#9e9e9e] mb-2 tracking-widest">Description</label>
-                  <textarea 
-                    value={newRecipe.description}
-                    onChange={e => setNewRecipe({...newRecipe, description: e.target.value})}
-                    placeholder="Brief summary of your meal..."
-                    className="w-full px-4 py-3 bg-[#fcfcfb] border border-[#eaeaE0] rounded-xl outline-none min-h-[80px]"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-[#9e9e9e] mb-2 tracking-widest">Ingredients (One per line)</label>
-                    <textarea 
-                      required
-                      value={newRecipe.ingredients}
-                      onChange={e => setNewRecipe({...newRecipe, ingredients: e.target.value})}
-                      placeholder="Rice&#10;Beans&#10;Onion"
-                      className="w-full px-4 py-3 bg-[#fcfcfb] border border-[#eaeaE0] rounded-xl outline-none min-h-[120px]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-[#9e9e9e] mb-2 tracking-widest">Steps (One per line)</label>
-                    <textarea 
-                      required
-                      value={newRecipe.steps}
-                      onChange={e => setNewRecipe({...newRecipe, steps: e.target.value})}
-                      placeholder="Wash rice&#10;Boil water"
-                      className="w-full px-4 py-3 bg-[#fcfcfb] border border-[#eaeaE0] rounded-xl outline-none min-h-[120px]"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-[#9e9e9e] mb-2 tracking-widest">Est. Cost (KES)</label>
-                    <input 
-                      type="number"
-                      value={newRecipe.cost}
-                      onChange={e => setNewRecipe({...newRecipe, cost: parseInt(e.target.value)})}
-                      className="w-full px-4 py-3 bg-[#fcfcfb] border border-[#eaeaE0] rounded-xl outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-[#9e9e9e] mb-2 tracking-widest">Prep Time (mins)</label>
-                    <input 
-                      type="number"
-                      value={newRecipe.time}
-                      onChange={e => setNewRecipe({...newRecipe, time: parseInt(e.target.value)})}
-                      className="w-full px-4 py-3 bg-[#fcfcfb] border border-[#eaeaE0] rounded-xl outline-none"
-                    />
-                  </div>
-                </div>
-                <button type="submit" className="w-full py-4 bg-[#5A5A40] text-white rounded-2xl font-bold hover:bg-[#4a4a3a] transition-all">
-                  Publish Publicly
-                </button>
-              </form>
             </motion.div>
           </div>
         )}

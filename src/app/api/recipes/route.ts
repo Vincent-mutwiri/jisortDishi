@@ -1,36 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/src/lib/mongodb';
-import type { Recipe, Ingredient } from '@/src/types';
+import type { Recipe, RecipeIngredient, RecipeStep, CreateRecipeRequest } from '@/src/types';
 
-type RecipeDocument = Omit<Recipe, 'created_at'> & {
-  image_url?: string | null;
-  created_at: Date | string;
-  updated_at?: Date;
+type RecipeDocument = Omit<Recipe, 'created_at' | 'updated_at'> & {
+  created_at: Date;
+  updated_at: Date;
 };
 
 function serializeRecipe(recipe: RecipeDocument): Recipe {
   return {
-    recipe_id: recipe.recipe_id,
-    title: recipe.title,
-    description: recipe.description,
-    ingredients: recipe.ingredients || [],
-    steps: recipe.steps || [],
-    estimated_cost: recipe.estimated_cost,
-    preparation_time: recipe.preparation_time,
-    created_by: recipe.created_by,
-    price: recipe.price,
-    is_public: recipe.is_public,
-    image_url: recipe.image_url,
-    created_at: recipe.created_at instanceof Date ? recipe.created_at.toISOString() : recipe.created_at,
+    ...recipe,
+    created_at: recipe.created_at.toISOString(),
+    updated_at: recipe.updated_at.toISOString(),
   };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const db = await getDb();
+    const userId = request.headers.get('x-user-id');
+    
+    let filter: { is_public: boolean } | { $or: ({ is_public: boolean } | { created_by: string })[] } = { is_public: true };
+    
+    // If user is authenticated, include their private recipes
+    if (userId) {
+      filter = {
+        $or: [
+          { is_public: true },
+          { created_by: userId }
+        ]
+      };
+    }
+
     const recipes = await db
       .collection<RecipeDocument>('recipes')
-      .find({ is_public: true })
+      .find(filter)
       .sort({ created_at: -1 })
       .toArray();
 
@@ -45,23 +49,62 @@ export async function POST(request: NextRequest) {
     const userId = request.headers.get('x-user-id');
     if (!userId) throw new Error('Missing user session');
 
-    const body = await request.json();
+    const body: CreateRecipeRequest = await request.json();
+    
+    // Validate required fields
+    const requiredFields = ['title', 'description', 'cuisine', 'category', 'prep_time_minutes', 'cook_time_minutes', 'servings', 'difficulty'];
+    for (const field of requiredFields) {
+      if (!body[field as keyof CreateRecipeRequest]) {
+        throw new Error(`Missing required field: ${field}`);
+      }
+    }
+
+    // Validate difficulty
+    if (!['easy', 'medium', 'hard'].includes(body.difficulty)) {
+      throw new Error('Difficulty must be easy, medium, or hard');
+    }
+
+    // Process ingredients and steps
+    const ingredients: RecipeIngredient[] = body.ingredients.map((ing, index) => ({
+      name: `ingredient_${index + 1}`, // Will be updated based on pantry items or user input
+      quantity: ing.quantity,
+      unit: ing.unit,
+      notes: ing.notes,
+    }));
+
+    const steps: RecipeStep[] = body.steps.map((step, index) => ({
+      step_number: index + 1,
+      instruction: step.instruction,
+      duration_minutes: step.duration_minutes,
+    }));
+
+    // Estimate cost based on ingredients (simplified calculation)
+    const estimatedCost = ingredients.reduce((total, ing) => {
+      // Basic cost estimation - this could be enhanced with actual pricing data
+      const baseCost = ing.quantity * 10; // Base rate per unit
+      return total + baseCost;
+    }, 0);
+
     const now = new Date();
-    const recipe = {
+    const recipe: RecipeDocument = {
       recipe_id: crypto.randomUUID(),
       title: body.title,
       description: body.description,
-      ingredients: String(body.ingredients || '')
-        .split('\n')
-        .map((name) => name.trim())
-        .filter(Boolean)
-        .map((name): Ingredient => ({ name, amount: '' })),
-      steps: String(body.steps || '').split('\n').map((step) => step.trim()).filter(Boolean),
-      estimated_cost: Number(body.cost || 0),
-      preparation_time: Number(body.time || 0),
+      cuisine: body.cuisine,
+      category: body.category,
+      prep_time_minutes: body.prep_time_minutes,
+      cook_time_minutes: body.cook_time_minutes,
+      servings: body.servings,
+      difficulty: body.difficulty,
+      ingredients,
+      steps,
+      tags: body.tags || [],
+      dietary_tags: body.dietary_tags || [],
+      tips: body.tips || [],
+      estimated_cost: estimatedCost,
       created_by: userId,
-      is_public: body.isPublic !== false,
-      image_url: body.imageUrl || null,
+      is_public: body.is_public,
+      image_url: null,
       created_at: now,
       updated_at: now,
     };
