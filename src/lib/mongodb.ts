@@ -8,6 +8,8 @@ const options = {
     strict: true,
     deprecationErrors: true,
   },
+  tls: true,
+  tlsInsecure: true,
 };
 
 let client: MongoClient;

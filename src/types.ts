@@ -27,13 +27,16 @@ export interface PantryItem {
   unit: string;
   expiry_date?: string;
   date_added: string;
+  storage_type: 'fridge' | 'pantry';
 }
 
 export interface RecipeIngredient {
+  ingredientId?: string;
   name: string;
   quantity: number;
   unit: string;
   notes?: string;
+  costPerUnit?: number;
 }
 
 export interface RecipeStep {
@@ -61,8 +64,36 @@ export interface Recipe {
   created_by: string;
   is_public: boolean;
   image_url?: string | null;
+  likes: number;
+  views: number;
+  comments_count: number;
+  liked_by?: string[];
   created_at: string;
   updated_at: string;
+}
+
+export interface RecipeComment {
+  comment_id: string;
+  recipe_id: string;
+  user_id: string;
+  user_name: string;
+  text: string;
+  created_at: string;
+}
+
+export interface SavedAIMeal {
+  meal_id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  suggested_ingredients: { name: string; approx_cost: number; is_in_pantry: boolean }[];
+  steps: string[];
+  estimated_total_cost: number;
+  prep_time_mins: number;
+  nutritional_info: string;
+  budget: number;
+  currency: string;
+  saved_at: string;
 }
 
 export interface CreateRecipeRequest {
@@ -74,7 +105,7 @@ export interface CreateRecipeRequest {
   cook_time_minutes: number;
   servings: number;
   difficulty: 'easy' | 'medium' | 'hard';
-  ingredients: Omit<RecipeIngredient, 'name'>[]; // name will be derived from pantry items or user input
+  ingredients: RecipeIngredient[];
   steps: Omit<RecipeStep, 'step_number'>[];
   tags: string[];
   dietary_tags: string[];

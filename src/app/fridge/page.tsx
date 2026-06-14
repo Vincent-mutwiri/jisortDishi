@@ -3,10 +3,10 @@
 import Layout from '@/src/components/Layout';
 import Pantry from '@/src/views/Pantry';
 
-export default function PantryPage() {
+export default function FridgePage() {
   return (
     <Layout>
-      <Pantry storageType="pantry" />
+      <Pantry storageType="fridge" />
     </Layout>
   );
 }

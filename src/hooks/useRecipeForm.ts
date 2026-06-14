@@ -29,11 +29,11 @@ export const useRecipeForm = (initialState?: Partial<CreateRecipeRequest>) => {
   const addIngredient = useCallback(() => {
     setRecipe(prev => ({
       ...prev,
-      ingredients: [...prev.ingredients, { quantity: 1, unit: 'cups', notes: '' }]
+      ingredients: [...prev.ingredients, { name: '', quantity: 1, unit: 'cups', notes: '', costPerUnit: undefined }]
     }));
   }, []);
 
-  const updateIngredient = useCallback((index: number, field: keyof Omit<RecipeIngredient, 'name'>, value: string | number | undefined) => {
+  const updateIngredient = useCallback((index: number, field: keyof RecipeIngredient, value: string | number | undefined) => {
     setRecipe(prev => {
       const updated = [...prev.ingredients];
       updated[index] = { ...updated[index], [field]: value };

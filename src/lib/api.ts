@@ -1,4 +1,4 @@
-import type { PantryItem, Recipe, UserProfile, CreateRecipeRequest, UpdateRecipeRequest } from '../types';
+import type { PantryItem, Recipe, UserProfile, CreateRecipeRequest, UpdateRecipeRequest, RecipeComment, SavedAIMeal } from '../types';
 import type { GeminiMealSuggestion } from './gemini';
 
 function userIdHeader() {
@@ -40,7 +40,7 @@ export const api = {
     body: JSON.stringify(profile),
   }),
   getPantry: () => request<PantryItem[]>('/api/pantry'),
-  addPantryItem: (item: { name: string; quantity: number; unit: string; expiry?: string }) => request<PantryItem>('/api/pantry', {
+  addPantryItem: (item: { name: string; quantity: number; unit: string; expiry?: string; storage_type: 'fridge' | 'pantry' }) => request<PantryItem>('/api/pantry', {
     method: 'POST',
     body: JSON.stringify(item),
   }),
@@ -64,8 +64,28 @@ export const api = {
     items: string[];
     preferences: string[];
     currency: string;
+    category: string;
+    meal_type: string;
+    people: number;
+    extra_notes: string;
   }) => request<GeminiMealSuggestion[]>('/api/suggestions', {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
+  likeRecipe: (recipeId: string) =>
+    request<{ liked: boolean; likes: number }>(`/api/recipes/${recipeId}/like`, { method: 'POST' }),
+  viewRecipe: (recipeId: string) =>
+    request<{ ok: boolean }>(`/api/recipes/${recipeId}/view`, { method: 'POST' }),
+  getComments: (recipeId: string) =>
+    request<RecipeComment[]>(`/api/recipes/${recipeId}/comments`),
+  addComment: (recipeId: string, text: string, user_name: string) =>
+    request<RecipeComment>(`/api/recipes/${recipeId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ text, user_name }),
+    }),
+  getSavedMeals: () => request<SavedAIMeal[]>('/api/meals'),
+  saveMealToDb: (meal: Omit<SavedAIMeal, 'meal_id' | 'user_id' | 'saved_at'>) =>
+    request<SavedAIMeal>('/api/meals', { method: 'POST', body: JSON.stringify(meal) }),
+  deleteSavedMeal: (meal_id: string) =>
+    request<{ ok: true }>('/api/meals', { method: 'DELETE', body: JSON.stringify({ meal_id }) }),
 };

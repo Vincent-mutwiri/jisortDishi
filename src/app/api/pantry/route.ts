@@ -5,6 +5,7 @@ import type { PantryItem } from '@/src/types';
 type PantryItemDocument = Omit<PantryItem, 'date_added' | 'expiry_date'> & {
   expiry_date?: string | null;
   date_added: Date | string;
+  storage_type?: string;
 };
 
 type StorageDocument = {
@@ -31,6 +32,7 @@ function serializeItem(item: PantryItemDocument): PantryItem {
     unit: item.unit,
     expiry_date: item.expiry_date || undefined,
     date_added: item.date_added instanceof Date ? item.date_added.toISOString() : item.date_added,
+    storage_type: (item.storage_type as 'fridge' | 'pantry') || 'pantry',
   };
 }
 
@@ -89,6 +91,7 @@ export async function POST(request: NextRequest) {
       unit: body.unit || 'pcs',
       expiry_date: body.expiry || null,
       date_added: now,
+      storage_type: (body.storage_type === 'fridge' ? 'fridge' : 'pantry') as 'fridge' | 'pantry',
     };
 
     await db.collection<PantryItemDocument>('pantry_items').insertOne(item);

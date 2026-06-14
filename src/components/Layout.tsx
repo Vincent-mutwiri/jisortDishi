@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Refrigerator, BookOpen, User, LogOut, UtensilsCrossed, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, Refrigerator, BookOpen, User, LogOut, UtensilsCrossed, ShoppingBag, Coins, Bell, Settings, Heart, Search, type LucideIcon } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { clearLocalUser, getLocalUserId, saveLocalUser } from '../lib/session';
 import { auth } from '../lib/auth';
 import { motion } from 'motion/react';
 import { useEffect, useRef } from 'react';
+import { useCurrency } from '../context/CurrencyContext';
+import { useNotifications } from '../context/NotificationContext';
 import { api } from '../lib/api';
 
 const NavItem = ({ to, icon: Icon, label }: { to: string, icon: LucideIcon, label: string }) => {
@@ -35,6 +37,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const { currency, symbol } = useCurrency();
+  const { unreadCount } = useNotifications();
   const isProvisioningRef = useRef(false);
 
   const handleLogout = async () => {
@@ -123,18 +127,38 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-[#f5f5f0] text-[#1a1a1a] font-sans">
       {/* Sidebar for Desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-[#eaeaE0] p-6">
-        <div className="flex items-center gap-2 mb-10 text-[#5A5A40]">
-          <UtensilsCrossed size={32} strokeWidth={2.5} />
-          <h1 className="text-2xl font-bold tracking-tight">Jisort Dishi</h1>
+      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-[#eaeaE0] p-6 h-screen sticky top-0 overflow-hidden">
+        <div className="mb-8">
+          <div className="flex items-center gap-2 text-[#5A5A40] mb-3">
+            <UtensilsCrossed size={32} strokeWidth={2.5} />
+            <h1 className="text-2xl font-bold tracking-tight">Jisort Dishi</h1>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#f0f0eb] rounded-xl w-fit">
+            <Coins size={14} className="text-[#5A5A40]" />
+            <span className="text-xs font-bold text-[#5A5A40] tracking-wide">{symbol} {currency}</span>
+          </div>
         </div>
         
         <nav className="flex-1 space-y-2">
           <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
-          <NavItem to="/pantry" icon={Refrigerator} label="Pantry / Fridge" />
+          <NavItem to="/find-meals" icon={Search} label="Find Meals" />
+          <NavItem to="/meals" icon={Heart} label="Saved Meals" />
+          <NavItem to="/pantry" icon={ShoppingBag} label="Pantry" />
+          <NavItem to="/fridge" icon={Refrigerator} label="Fridge" />
           <NavItem to="/recipes" icon={BookOpen} label="Recipes" />
           <NavItem to="/profile" icon={User} label="My Profile" />
+          <NavItem to="/settings" icon={Settings} label="Settings" />
         </nav>
+
+        <Link href="/notifications">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#4a4a3a] hover:bg-[#eaeaE0] transition-colors mt-2 relative">
+            <Bell size={20} />
+            <span className="font-medium">Notifications</span>
+            {unreadCount > 0 && (
+              <span className="ml-auto w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center">{unreadCount}</span>
+            )}
+          </div>
+        </Link>
 
         <button 
           onClick={handleLogout}
@@ -153,9 +177,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <UtensilsCrossed size={24} strokeWidth={2.5} />
             <h1 className="text-xl font-bold tracking-tight">Jisort Dishi</h1>
           </div>
-          <button onClick={handleLogout} className="text-red-600 p-2">
-            <LogOut size={20} />
-          </button>
+          <div className="flex items-center gap-1">
+            <Link href="/notifications" className="relative p-2 text-[#4a4a3a]">
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center">{unreadCount}</span>
+              )}
+            </Link>
+            <button onClick={handleLogout} className="text-red-600 p-2">
+              <LogOut size={20} />
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-auto p-4 md:p-8">
@@ -170,10 +202,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Mobile Bottom Nav */}
         <nav className="md:hidden flex justify-around p-3 bg-white border-t border-[#eaeaE0]">
-          <Link href="/dashboard" className="p-2"><LayoutDashboard /></Link>
-          <Link href="/pantry" className="p-2"><Refrigerator /></Link>
-          <Link href="/recipes" className="p-2"><BookOpen /></Link>
-          <Link href="/profile" className="p-2"><User /></Link>
+          <Link href="/dashboard" className="p-2"><LayoutDashboard size={20} /></Link>
+          <Link href="/pantry" className="p-2"><ShoppingBag size={20} /></Link>
+          <Link href="/fridge" className="p-2"><Refrigerator size={20} /></Link>
+          <Link href="/recipes" className="p-2"><BookOpen size={20} /></Link>
+          <Link href="/profile" className="p-2"><User size={20} /></Link>
+          <Link href="/settings" className="p-2"><Settings size={20} /></Link>
+          <Link href="/meals" className="p-2"><Heart size={20} /></Link>
         </nav>
       </main>
     </div>

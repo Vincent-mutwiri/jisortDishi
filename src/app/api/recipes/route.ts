@@ -10,6 +10,10 @@ type RecipeDocument = Omit<Recipe, 'created_at' | 'updated_at'> & {
 function serializeRecipe(recipe: RecipeDocument): Recipe {
   return {
     ...recipe,
+    likes: recipe.likes ?? 0,
+    views: recipe.views ?? 0,
+    comments_count: recipe.comments_count ?? 0,
+    liked_by: recipe.liked_by ?? [],
     created_at: recipe.created_at.toISOString(),
     updated_at: recipe.updated_at.toISOString(),
   };
@@ -65,24 +69,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Process ingredients and steps
-    const ingredients: RecipeIngredient[] = body.ingredients.map((ing, index) => ({
-      name: `ingredient_${index + 1}`, // Will be updated based on pantry items or user input
+    const ingredients: RecipeIngredient[] = body.ingredients.map((ing: any) => ({
+      name: ing.name || '',
       quantity: ing.quantity,
       unit: ing.unit,
       notes: ing.notes,
+      ...(ing.costPerUnit != null ? { costPerUnit: ing.costPerUnit } : {}),
     }));
 
-    const steps: RecipeStep[] = body.steps.map((step, index) => ({
+    const steps: RecipeStep[] = body.steps.map((step: any, index: number) => ({
       step_number: index + 1,
       instruction: step.instruction,
       duration_minutes: step.duration_minutes,
     }));
 
-    // Estimate cost based on ingredients (simplified calculation)
-    const estimatedCost = ingredients.reduce((total, ing) => {
-      // Basic cost estimation - this could be enhanced with actual pricing data
-      const baseCost = ing.quantity * 10; // Base rate per unit
-      return total + baseCost;
+    // Estimate cost from ingredient pricing if provided, otherwise 0
+    const estimatedCost = ingredients.reduce((total, ing: any) => {
+      if (ing.costPerUnit != null) return total + ing.costPerUnit * ing.quantity;
+      return total;
     }, 0);
 
     const now = new Date();
@@ -105,6 +109,10 @@ export async function POST(request: NextRequest) {
       created_by: userId,
       is_public: body.is_public,
       image_url: null,
+      likes: 0,
+      views: 0,
+      comments_count: 0,
+      liked_by: [],
       created_at: now,
       updated_at: now,
     };
