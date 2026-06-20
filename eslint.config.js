@@ -7,6 +7,7 @@ export default [
     ignores: ['.next/**/*', 'node_modules/**/*']
   },
   {
+    ...next.configs.recommended,
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
       parser: tsParser,
@@ -16,7 +17,7 @@ export default [
       },
     },
     plugins: {
-      '@next/next': next,
+      ...next.configs.recommended.plugins,
       '@typescript-eslint': ts,
     },
     rules: {
