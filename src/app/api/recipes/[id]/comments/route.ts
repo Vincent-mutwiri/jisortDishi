@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/src/lib/mongodb';
 import type { RecipeComment } from '@/src/types';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const db = await getDb();
     const comments = await db
       .collection<RecipeComment>('recipe_comments')
-      .find({ recipe_id: params.id })
+      .find({ recipe_id: id })
       .sort({ created_at: -1 })
       .toArray();
 
@@ -15,13 +16,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       ...c,
       _id: undefined,
     })));
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to load comments' }, { status: 500 });
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const userId = request.headers.get('x-user-id');
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const comment: RecipeComment = {
       comment_id: crypto.randomUUID(),
-      recipe_id: params.id,
+      recipe_id: id,
       user_id: userId,
       user_name: user_name || 'Anonymous',
       text: text.trim(),
@@ -43,12 +45,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // Increment comments_count on the recipe
     await db.collection('recipes').updateOne(
-      { recipe_id: params.id },
+      { recipe_id: id },
       { $inc: { comments_count: 1 } }
     );
 
     return NextResponse.json(comment);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to post comment' }, { status: 500 });
   }
 }

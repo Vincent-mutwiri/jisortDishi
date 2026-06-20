@@ -10,6 +10,37 @@ import {
 import toast from 'react-hot-toast';
 import { api } from '../lib/api';
 import { useRecipeForm } from '../hooks/useRecipeForm';
+import type { CreateRecipeRequest, RecipeIngredient, RecipeStep } from '../types';
+
+interface BasicInfoStepProps {
+  recipe: CreateRecipeRequest;
+  updateRecipe: <K extends keyof CreateRecipeRequest>(field: K, value: CreateRecipeRequest[K]) => void;
+}
+
+interface IngredientsStepProps {
+  recipe: CreateRecipeRequest;
+  addIngredient: () => void;
+  updateIngredient: (index: number, field: keyof RecipeIngredient, value: string | number | undefined) => void;
+  removeIngredient: (index: number) => void;
+}
+
+interface InstructionsStepProps {
+  recipe: CreateRecipeRequest;
+  addStep: () => void;
+  updateStep: (index: number, field: keyof Omit<RecipeStep, 'step_number'>, value: string | number | undefined) => void;
+  removeStep: (index: number) => void;
+}
+
+interface DetailsStepProps {
+  recipe: CreateRecipeRequest;
+  updateRecipe: <K extends keyof CreateRecipeRequest>(field: K, value: CreateRecipeRequest[K]) => void;
+  addTag: (tag: string) => void;
+  removeTag: (tag: string) => void;
+}
+
+interface ReviewStepProps {
+  recipe: CreateRecipeRequest;
+}
 
 const CUISINE_OPTIONS = [
   'African', 'Asian', 'Caribbean', 'European', 'Latin American', 
@@ -47,7 +78,7 @@ const STEPS = [
   { id: 5, title: 'Review', icon: Eye, description: 'Check your recipe' }
 ];
 
-const BasicInfoStep = ({ recipe, updateRecipe }: any) => {
+const BasicInfoStep = ({ recipe, updateRecipe }: BasicInfoStepProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -252,7 +283,7 @@ const BasicInfoStep = ({ recipe, updateRecipe }: any) => {
   );
 };
 
-const IngredientsStep = ({ recipe, updateRecipe, addIngredient, updateIngredient, removeIngredient }: any) => (
+const IngredientsStep = ({ recipe, addIngredient, updateIngredient, removeIngredient }: IngredientsStepProps) => (
   <div className="space-y-6">
     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
       <div>
@@ -269,7 +300,7 @@ const IngredientsStep = ({ recipe, updateRecipe, addIngredient, updateIngredient
     </div>
 
     <div className="space-y-3">
-      {recipe.ingredients.map((ingredient: any, index: number) => (
+      {recipe.ingredients.map((ingredient, index) => (
         <div key={index} className="flex flex-col gap-2 p-4 border border-[#eaeaE0] rounded-xl bg-[#fafaf8]">
           {/* Row 1: name + remove */}
           <div className="flex gap-2 items-center">
@@ -353,7 +384,7 @@ const IngredientsStep = ({ recipe, updateRecipe, addIngredient, updateIngredient
   </div>
 );
 
-const InstructionsStep = ({ recipe, updateRecipe, addStep, updateStep, removeStep }: any) => (
+const InstructionsStep = ({ recipe, addStep, updateStep, removeStep }: InstructionsStepProps) => (
   <div className="space-y-6">
     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
       <div>
@@ -370,7 +401,7 @@ const InstructionsStep = ({ recipe, updateRecipe, addStep, updateStep, removeSte
     </div>
 
     <div className="space-y-4">
-      {recipe.steps.map((step: any, index: number) => (
+      {recipe.steps.map((step, index) => (
         <div key={index} className="border border-[#eaeaE0] rounded-lg p-4">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 w-8 h-8 bg-[#5A5A40] text-white rounded-full flex items-center justify-center font-bold text-sm">
@@ -420,7 +451,7 @@ const InstructionsStep = ({ recipe, updateRecipe, addStep, updateStep, removeSte
   </div>
 );
 
-const DetailsStep = ({ recipe, updateRecipe, addTag, removeTag }: any) => (
+const DetailsStep = ({ recipe, updateRecipe, addTag, removeTag }: DetailsStepProps) => (
   <div className="space-y-6">
     <div>
       <h3 className="text-lg font-semibold mb-2">Tags & Sharing</h3>
@@ -512,7 +543,7 @@ const DetailsStep = ({ recipe, updateRecipe, addTag, removeTag }: any) => (
   </div>
 );
 
-const ReviewStep = ({ recipe }: any) => (
+const ReviewStep = ({ recipe }: ReviewStepProps) => (
   <div className="space-y-6">
     <div>
       <h3 className="text-lg font-semibold mb-2">Check Your Recipe</h3>
@@ -533,7 +564,7 @@ const ReviewStep = ({ recipe }: any) => (
         <div className="mb-6">
           <h5 className="font-semibold mb-3">Ingredients ({recipe.ingredients.length})</h5>
           <div className="space-y-2">
-            {recipe.ingredients.map((ing: any, index: number) => (
+            {recipe.ingredients.map((ing, index) => (
               <div key={index} className="flex items-center gap-2 text-sm">
                 <span className="text-[#5A5A40]">•</span>
                 <span>{ing.quantity} {ing.unit} {ing.notes}</span>
@@ -546,7 +577,7 @@ const ReviewStep = ({ recipe }: any) => (
         <div className="mb-6">
           <h5 className="font-semibold mb-3">How to Make ({recipe.steps.length} steps)</h5>
           <div className="space-y-3">
-            {recipe.steps.map((step: any, index: number) => (
+            {recipe.steps.map((step, index) => (
               <div key={index} className="flex gap-3">
                 <div className="flex-shrink-0 w-6 h-6 bg-[#5A5A40] text-white rounded-full flex items-center justify-center font-bold text-xs">{index + 1}</div>
                 <p className="text-sm text-[#4a4a3a]">{step.instruction}</p>
@@ -666,9 +697,9 @@ export default function CreateRecipe() {
       case 1:
         return <BasicInfoStep recipe={recipe} updateRecipe={updateRecipe} />;
       case 2:
-        return <IngredientsStep recipe={recipe} updateRecipe={updateRecipe} addIngredient={addIngredient} updateIngredient={updateIngredient} removeIngredient={removeIngredient} />;
+        return <IngredientsStep recipe={recipe} addIngredient={addIngredient} updateIngredient={updateIngredient} removeIngredient={removeIngredient} />;
       case 3:
-        return <InstructionsStep recipe={recipe} updateRecipe={updateRecipe} addStep={addStep} updateStep={updateStep} removeStep={removeStep} />;
+        return <InstructionsStep recipe={recipe} addStep={addStep} updateStep={updateStep} removeStep={removeStep} />;
       case 4:
         return <DetailsStep recipe={recipe} updateRecipe={updateRecipe} addTag={addTag} removeTag={removeTag} />;
       case 5:

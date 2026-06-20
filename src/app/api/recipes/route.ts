@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Process ingredients and steps
-    const ingredients: RecipeIngredient[] = body.ingredients.map((ing: any) => ({
+    const ingredients: RecipeIngredient[] = body.ingredients.map((ing) => ({
       name: ing.name || '',
       quantity: ing.quantity,
       unit: ing.unit,
@@ -77,14 +77,14 @@ export async function POST(request: NextRequest) {
       ...(ing.costPerUnit != null ? { costPerUnit: ing.costPerUnit } : {}),
     }));
 
-    const steps: RecipeStep[] = body.steps.map((step: any, index: number) => ({
+    const steps: RecipeStep[] = body.steps.map((step, index) => ({
       step_number: index + 1,
       instruction: step.instruction,
       duration_minutes: step.duration_minutes,
     }));
 
     // Estimate cost from ingredient pricing if provided, otherwise 0
-    const estimatedCost = ingredients.reduce((total, ing: any) => {
+    const estimatedCost = ingredients.reduce((total, ing) => {
       if (ing.costPerUnit != null) return total + ing.costPerUnit * ing.quantity;
       return total;
     }, 0);

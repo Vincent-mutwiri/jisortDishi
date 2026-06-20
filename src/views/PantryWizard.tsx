@@ -6,12 +6,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { lookupShelfLife, calcExpiry, today } from '../lib/shelfLife';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
+import type { PantryItem } from '../types';
 
 const UNITS = ['pcs', 'kg', 'g', 'liters', 'ml', 'cups', 'bunch', 'pack', 'box', 'bag', 'cans'];
 
 interface WizardProps {
   storageType: 'fridge' | 'pantry';
-  onDone: (item: any) => void;
+  onDone: (item: PantryItem) => void;
   onCancel: () => void;
 }
 
@@ -73,7 +74,7 @@ export default function PantryWizard({ storageType, onDone, onCancel }: WizardPr
     <div className="bg-white rounded-[32px] border border-[#eaeaE0] shadow-sm overflow-hidden mb-8">
       {/* Step indicator */}
       <div className="flex border-b border-[#eaeaE0]">
-        {steps.map((s, i) => (
+        {steps.map((s) => (
           <div
             key={s.num}
             className={`flex-1 flex flex-col items-center py-4 text-xs font-bold uppercase tracking-widest transition-colors ${

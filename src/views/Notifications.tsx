@@ -3,7 +3,7 @@
 import { Bell, AlertCircle, AlertTriangle, CheckCircle, Info, Trash2, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Link from 'next/link';
-import { useNotifications, NotifType } from '../context/NotificationContext';
+import { useNotifications, NotifType, AppNotification } from '../context/NotificationContext';
 
 function timeAgo(date: Date): string {
   const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -89,7 +89,7 @@ export default function Notifications() {
   );
 }
 
-function NotifCard({ n, onDismiss, onClick }: { n: any; onDismiss: (id: string) => void; onClick?: () => void }) {
+function NotifCard({ n, onDismiss, onClick }: { n: AppNotification; onDismiss: (id: string) => void; onClick?: () => void }) {
   return (
     <div
       onClick={onClick}

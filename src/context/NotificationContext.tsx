@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { api } from '../lib/api';
+import type { PantryItem } from '../types';
 
 export type NotifType = 'warning' | 'error' | 'info' | 'success';
 
@@ -37,15 +38,7 @@ export function useNotifications() {
   return useContext(NotificationContext);
 }
 
-function timeAgo(date: Date): string {
-  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (diff < 60) return 'Just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
-
-function buildNotifications(pantryItems: any[]): AppNotification[] {
+function buildNotifications(pantryItems: PantryItem[]): AppNotification[] {
   const notifs: AppNotification[] = [];
   const now = Date.now();
 

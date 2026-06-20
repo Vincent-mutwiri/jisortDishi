@@ -5,9 +5,9 @@ import { UtensilsCrossed, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import toast from 'react-hot-toast';
 import { auth } from '@/src/lib/auth';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -192,5 +192,17 @@ export default function ResetPasswordPage() {
         </button>
       </motion.div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#f5f5f0] flex flex-col items-center justify-center p-6">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#5A5A40]"></div>
+      </div>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }
