@@ -92,7 +92,7 @@ export default function FindMeals() {
       });
       setSuggestions(results, b, currency);
       router.push('/suggestions');
-    } catch (e) {
+    } catch {
       toast.error('Failed to generate suggestions. Try again.');
     } finally {
       setLoading(false);

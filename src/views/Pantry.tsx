@@ -134,7 +134,8 @@ export default function Pantry({ storageType = 'pantry' }: { storageType?: 'frid
               </div>
               <button 
                 onClick={() => handleDelete(item.item_id)}
-                className="p-2 text-[#9e9e9e] hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                disabled={deletingId === item.item_id}
+                className="p-2 text-[#9e9e9e] hover:text-red-500 hover:bg-red-50 rounded-xl transition-all disabled:opacity-50"
               >
                 <Trash2 size={18} />
               </button>

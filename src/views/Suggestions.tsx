@@ -7,10 +7,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import toast from 'react-hot-toast';
 import { useSavedMeals } from '../context/SavedMealsContext';
 import { useCurrency } from '../context/CurrencyContext';
-import { useData } from '../context/DataContext';
 import { useDebounce } from '../hooks/useDebounce';
 import { api } from '../lib/api';
 import type { GeminiMealSuggestion } from '../lib/gemini';
+import type { SavedMeal } from '../context/SavedMealsContext';
 
 const MEAL_EMOJIS = ['🍲', '🥘', '🍜', '🥗', '🍱', '🫕', '🥩', '🍳', '🥙', '🍛'];
 
@@ -18,8 +18,6 @@ export default function Suggestions() {
   const router = useRouter();
   const { suggestions, budget: suggestionBudget, saveMeal, unsaveMeal, isSaved } = useSavedMeals();
   const { currency, format } = useCurrency();
-  const { savedMeals, refreshSavedMeals } = useData();
-  
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300); // Debounce search input
   
@@ -48,8 +46,8 @@ export default function Suggestions() {
     setSaving(meal.title);
     try {
       if (isSaved(meal.title)) {
-        const saved = JSON.parse(localStorage.getItem('jisort_saved_meals') || '[]');
-        const found = saved.find((m: any) => m.title === meal.title);
+        const saved = JSON.parse(localStorage.getItem('jisort_saved_meals') || '[]') as SavedMeal[];
+        const found = saved.find((m) => m.title === meal.title);
         if (found) {
           unsaveMeal(found.id);
           await api.deleteSavedMeal(found.id).catch(() => {});
@@ -70,9 +68,10 @@ export default function Suggestions() {
           });
           saveMeal(meal, suggestionBudget ?? 0, currency);
           toast.success('Saved to your meals!');
-        } catch (e: any) {
+        } catch (e: unknown) {
           saveMeal(meal, suggestionBudget ?? 0, currency);
-          toast.success(e?.message?.includes('Already saved') ? 'Already saved' : 'Saved locally');
+          const message = e instanceof Error ? e.message : '';
+          toast.success(message.includes('Already saved') ? 'Already saved' : 'Saved locally');
         }
       }
     } finally {
@@ -135,7 +134,7 @@ export default function Suggestions() {
           <SlidersHorizontal size={15} className="text-[#9e9e9e] shrink-0" />
           <select
             value={sortBy}
-            onChange={e => setSortBy(e.target.value as any)}
+            onChange={e => setSortBy(e.target.value as 'default' | 'cost_asc' | 'cost_desc' | 'time')}
             className="px-4 py-3 bg-white border border-[#eaeaE0] rounded-2xl text-sm font-bold text-[#4a4a3a] outline-none focus:ring-2 focus:ring-[#5A5A40] cursor-pointer"
           >
             <option value="default">Best match</option>

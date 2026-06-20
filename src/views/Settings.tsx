@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Bell, ShieldCheck, Moon, Globe, Trash2, ChevronRight } from 'lucide-react';
+import { Bell, ShieldCheck, Globe, Trash2, ChevronRight } from 'lucide-react';
 import { useCurrency, CURRENCIES } from '../context/CurrencyContext';
 import { setLocalCurrency } from '../lib/session';
 

@@ -2,18 +2,11 @@
 
 import { useState } from 'react';
 import { Sparkles, Refrigerator, AlertTriangle, BookOpen, ShoppingBag, Plus, ArrowRight, ChevronRight, Clock, ChefHat, Search, Heart } from 'lucide-react';
-import { useCurrency } from '../context/CurrencyContext';
 import { useData } from '../context/DataContext';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'motion/react';
-import toast from 'react-hot-toast';
 
 export default function Dashboard() {
-  const router = useRouter();
-  const { currency } = useCurrency();
-  const { profile, pantry, recipes, isLoadingProfile, isLoadingPantry, isLoadingRecipes, refreshProfile, refreshPantry, refreshRecipes } = useData();
-  const [loading, setLoading] = useState(false);
+  const { profile, pantry, recipes, isLoadingProfile, refreshProfile, refreshPantry, refreshRecipes } = useData();
   
   // Ensure data is fresh (uses cached data immediately, refreshes in background)
   useState(() => {

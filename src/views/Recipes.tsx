@@ -12,7 +12,7 @@ import { getLocalUserId } from '../lib/session';
 
 export default function Recipes() {
   const router = useRouter();
-  const { format, symbol } = useCurrency();
+  const { format } = useCurrency();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,7 +63,11 @@ export default function Recipes() {
       const res = await api.likeRecipe(recipeId);
       setLikedIds(prev => {
         const s = new Set(prev);
-        res.liked ? s.add(recipeId) : s.delete(recipeId);
+        if (res.liked) {
+          s.add(recipeId);
+        } else {
+          s.delete(recipeId);
+        }
         return s;
       });
       setLikeCounts(prev => ({ ...prev, [recipeId]: res.likes }));
